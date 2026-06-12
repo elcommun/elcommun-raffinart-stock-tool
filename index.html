@@ -179,6 +179,7 @@
         <thead><tr><th>SKU</th><th>品番</th><th>商品名</th></tr></thead>
         <tbody id="soldoutTbody"></tbody>
       </table>
+      <button class="dl-btn" id="dlSoldoutBtn" style="margin-top:14px;">⬇️ SOLD OUT一覧をダウンロード</button>
     </div>
   </div>
 
@@ -193,6 +194,7 @@
         <thead><tr><th>SKU</th><th>抽出した品番コード</th></tr></thead>
         <tbody id="unmatchedTbody"></tbody>
       </table>
+      <button class="dl-btn" id="dlUnmatchedBtn" style="margin-top:14px;">⬇️ 未マッチ一覧をダウンロード</button>
     </div>
   </div>
 
@@ -218,6 +220,38 @@ function setStatus(id, ok, msg) {
 
 function checkReady() {
   document.getElementById('actionBtn').disabled = !(dataVol1 && dataVol2 && dataCsv);
+}
+
+function csvEscape(val) {
+  const s = String(val ?? '');
+  return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function buildCsv(header, rows) {
+  const lines = [header.map(csvEscape).join(',')];
+  for (const row of rows) lines.push(row.map(csvEscape).join(','));
+  return '﻿' + lines.join('\r\n') + '\r\n';
+}
+
+function timestamp() {
+  const ts = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}${pad(ts.getHours())}${pad(ts.getMinutes())}${pad(ts.getSeconds())}`;
+}
+
+function triggerDownload(url, filename) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function downloadCsv(content, filename) {
+  const url = URL.createObjectURL(new Blob([content], { type: 'text/csv;charset=utf-8' }));
+  triggerDownload(url, filename);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 // 品番 -> { zaiko, nyuka, name } のマップを作る
@@ -363,28 +397,21 @@ function doAction() {
     log(`⚠️ 品番マスタに見つからず 0 に更新したSKU：${unmatchedList.length}件`, 'log-warn');
   }
 
-  // 出力CSV生成（UTF-8 BOM付き、CRLF）
-  const csvLines = [dataCsv.header.join(',')];
-  for (const row of outputRows) {
-    csvLines.push(row.join(','));
-  }
-  const csvContent = '﻿' + csvLines.join('\r\n') + '\r\n';
+  // CSVダウンロード設定
+  const ts = timestamp();
+  const csvContent = buildCsv(dataCsv.header, outputRows);
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
   if (outputBlobUrl) URL.revokeObjectURL(outputBlobUrl);
   outputBlobUrl = URL.createObjectURL(blob);
 
-  const ts = new Date();
-  const pad = (n) => String(n).padStart(2, '0');
-  const fname = `itemdata_updated_${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}${pad(ts.getHours())}${pad(ts.getMinutes())}${pad(ts.getSeconds())}.csv`;
-
-  const dlBtn = document.getElementById('dlBtn');
-  dlBtn.onclick = () => {
-    const a = document.createElement('a');
-    a.href = outputBlobUrl;
-    a.download = fname;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  document.getElementById('dlBtn').onclick = () => {
+    triggerDownload(outputBlobUrl, `itemdata_updated_${ts}.csv`);
+  };
+  document.getElementById('dlSoldoutBtn').onclick = () => {
+    downloadCsv(buildCsv(['SKU', '品番', '商品名'], soldOutList.map(s => [s.sku, s.code, s.name])), `soldout_list_${ts}.csv`);
+  };
+  document.getElementById('dlUnmatchedBtn').onclick = () => {
+    downloadCsv(buildCsv(['SKU', '抽出した品番コード'], unmatchedList.map(u => [u.sku, u.code])), `unmatched_list_${ts}.csv`);
   };
 
   // 統計表示
