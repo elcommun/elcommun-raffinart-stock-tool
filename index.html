@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raffinart 在庫更新ツール | EL COMMUN</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --primary:#E85D26;--primary-light:#FFF3EE;--primary-dark:#C4461B;
+    --gray-50:#F9FAFB;--gray-100:#F3F4F6;--gray-200:#E5E7EB;
+    --gray-400:#9CA3AF;--gray-600:#4B5563;--gray-800:#1F2937;
+    --green:#10B981;--green-light:#ECFDF5;
+    --red:#EF4444;--red-light:#FEF2F2;
+    --yellow-light:#FFFBEB;--blue-light:#EFF6FF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Hiragino Sans','Noto Sans JP','Meiryo',sans-serif;background:var(--gray-100);color:var(--gray-800);min-height:100vh;}
+  header{background:white;border-bottom:3px solid var(--primary);padding:16px 32px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);}
+  .logo{width:36px;height:36px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:14px;}
+  header h1{font-size:18px;font-weight:700;}
+  header span{font-size:12px;color:var(--gray-400);margin-left:4px;}
+  .container{max-width:960px;margin:0 auto;padding:32px 16px;}
+  .info-box{background:var(--yellow-light);border:1px solid #FDE68A;border-radius:10px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#92400E;line-height:1.6;}
+  .info-box strong{color:#78350F;}
+  .card{background:white;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:20px;overflow:hidden;}
+  .card-header{padding:16px 20px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;gap:10px;}
+  .step{width:28px;height:28px;background:var(--primary);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;flex-shrink:0;}
+  .step.rule{background:var(--gray-600);font-size:11px;}
+  .card-header h2{font-size:15px;font-weight:700;}
+  .sub{font-size:12px;color:var(--gray-400);margin-left:4px;}
+  .card-body{padding:20px;}
+  .upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media (max-width:640px){.upload-grid{grid-template-columns:1fr;}}
+  .upload-zone{border:2px dashed var(--gray-200);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--gray-50);position:relative;}
+  .upload-zone:hover,.upload-zone.drag{border-color:var(--primary);background:var(--primary-light);}
+  .upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+  .upload-icon{font-size:32px;margin-bottom:8px;}
+  .upload-zone p{font-size:14px;color:var(--gray-600);margin-bottom:4px;}
+  .upload-zone small{font-size:12px;color:var(--gray-400);}
+  .file-status{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;margin-top:10px;font-size:13px;}
+  .file-status.ok{background:var(--green-light);color:#065F46;}
+  .file-status.err{background:var(--red-light);color:#991B1B;}
+  .data-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .data-table th{background:var(--gray-100);padding:8px 12px;text-align:left;font-weight:600;color:var(--gray-600);border-bottom:1px solid var(--gray-200);}
+  .data-table td{padding:8px 12px;border-bottom:1px solid var(--gray-200);}
+  .data-table tr:last-child td{border-bottom:none;}
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;}
+  .badge-orange{background:#FED7AA;color:#C2410C;}.badge-blue{background:#DBEAFE;color:#1D4ED8;}
+  .badge-red{background:#FEE2E2;color:#991B1B;}.badge-green{background:#D1FAE5;color:#065F46;}
+  .badge-gray{background:#F3F4F6;color:#374151;}
+  .rule-box{background:var(--blue-light);border:1px solid #BFDBFE;border-radius:8px;padding:12px 16px;font-size:12px;color:#1E40AF;line-height:2;}
+  .primary-btn{width:100%;padding:14px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;transition:background .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .primary-btn:hover:not(:disabled){background:var(--primary-dark);}
+  .primary-btn:disabled{background:var(--gray-400);cursor:not-allowed;}
+  .log-box{margin-top:16px;background:var(--gray-800);color:#D1FAE5;border-radius:8px;padding:16px;font-size:12px;font-family:'Courier New',monospace;line-height:1.8;max-height:320px;overflow-y:auto;display:none;}
+  .log-box.show{display:block;}
+  .log-ok{color:#6EE7B7;}.log-warn{color:#FCD34D;}.log-err{color:#FCA5A5;}.log-info{color:#93C5FD;}
+  .log-sep{color:#4B5563;border-top:1px solid #374151;margin:4px 0;}
+  .result-section{display:none;background:var(--green-light);border:1px solid #6EE7B7;border-radius:10px;padding:20px;margin-top:20px;text-align:center;}
+  .result-section.show{display:block;}
+  .result-section h3{color:#065F46;font-size:16px;margin-bottom:12px;}
+  .dl-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:var(--green);color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:background .2s;}
+  .dl-btn:hover{background:#059669;}
+  .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;}
+  .stats-grid.col5{grid-template-columns:repeat(5,1fr);}
+  @media (max-width:640px){.stats-grid.col5{grid-template-columns:repeat(2,1fr);}}
+  .stat{background:white;border-radius:8px;padding:12px;text-align:center;border:1px solid var(--gray-200);}
+  .stat .num{font-size:22px;font-weight:800;color:var(--primary);}
+  .stat .label{font-size:11px;color:var(--gray-600);margin-top:2px;}
+  .soldout-section{display:none;}
+  .soldout-section.show{display:block;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">RA</div>
+  <div><h1>Raffinart 在庫更新ツール <span>EL COMMUN</span></h1></div>
+</header>
+
+<div class="container">
+
+  <div class="info-box">
+    <strong>処理概要：</strong>「在庫CSV」のSKU末尾の品番コード（例: <code>FIN-62604</code>）をVol.1 / Vol.2の「品番」と照合し、総在庫数を更新します。
+  </div>
+
+  <!-- Step 1 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step">1</div>
+      <h2>在庫データをアップロード <span class="sub">Vol.1 / Vol.2 （xlsx）</span></h2>
+    </div>
+    <div class="card-body">
+      <div class="upload-grid">
+        <div>
+          <div class="upload-zone" id="zoneVol1">
+            <input type="file" accept=".xlsx" id="fileVol1">
+            <div class="upload-icon">📊</div>
+            <p>【在庫】raffinart_vol.1.xlsx</p>
+            <small>ドロップ または クリックして選択</small>
+          </div>
+          <div id="statusVol1"></div>
+        </div>
+        <div>
+          <div class="upload-zone" id="zoneVol2">
+            <input type="file" accept=".xlsx" id="fileVol2">
+            <div class="upload-icon">📊</div>
+            <p>【在庫】raffinart_vol.2.xlsx</p>
+            <small>ドロップ または クリックして選択</small>
+          </div>
+          <div id="statusVol2"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step">2</div>
+      <h2>在庫CSVをアップロード <span class="sub">itemdata_*.csv</span></h2>
+    </div>
+    <div class="card-body">
+      <div class="upload-zone" id="zoneCsv">
+        <input type="file" accept=".csv" id="fileCsv">
+        <div class="upload-icon">📄</div>
+        <p>itemdata_*.csv（SKU, 総在庫数）</p>
+        <small>ドロップ または クリックして選択</small>
+      </div>
+      <div id="statusCsv"></div>
+    </div>
+  </div>
+
+  <!-- Rule -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step rule">RULE</div>
+      <h2>更新ルール</h2>
+    </div>
+    <div class="card-body">
+      <div class="rule-box">
+        ・SKU末尾の品番コード（英大文字＋ハイフン＋数字）でVol.1/Vol.2の「品番」と照合<br>
+        ・「在庫状況」が <span class="badge badge-red">※ または X</span> → 総在庫数を <strong>0</strong> に更新<br>
+        ・それ以外（△・空欄・未マッチ含む） → 総在庫数を <strong>10</strong> に更新<br>
+        ・「入荷予定」が <span class="badge badge-gray">SOLD OUT</span> → 出力から除外し、下に一覧表示
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="card">
+    <div class="card-header"><div class="step">3</div><h2>実行</h2></div>
+    <div class="card-body">
+      <button class="primary-btn" id="actionBtn" disabled onclick="doAction()">
+        ⚙️ 在庫データを更新する
+      </button>
+      <div class="log-box" id="logBox"></div>
+    </div>
+  </div>
+
+  <!-- 結果 -->
+  <div class="result-section" id="resultSection">
+    <h3>✅ 更新完了！</h3>
+    <button class="dl-btn" id="dlBtn">⬇️ 更新後CSVをダウンロード</button>
+    <div class="stats-grid col5" id="statsGrid"></div>
+  </div>
+
+  <!-- SOLD OUT 一覧 -->
+  <div class="card soldout-section" id="soldoutSection">
+    <div class="card-header">
+      <div class="step rule" style="background:var(--red);">!</div>
+      <h2>SOLD OUT 商品一覧 <span class="sub">出力からは除外しています</span></h2>
+    </div>
+    <div class="card-body">
+      <table class="data-table">
+        <thead><tr><th>SKU</th><th>品番</th><th>商品名</th></tr></thead>
+        <tbody id="soldoutTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 未マッチ 一覧（参考） -->
+  <div class="card soldout-section" id="unmatchedSection">
+    <div class="card-header">
+      <div class="step rule">参考</div>
+      <h2>Vol.1 / Vol.2 に品番が見つからなかったSKU <span class="sub">総在庫数は10として出力済み</span></h2>
+    </div>
+    <div class="card-body">
+      <table class="data-table">
+        <thead><tr><th>SKU</th><th>抽出した品番コード</th></tr></thead>
+        <tbody id="unmatchedTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let dataVol1 = null;
+let dataVol2 = null;
+let dataCsv = null;
+let outputBlobUrl = null;
+
+function log(msg, cls = '') {
+  const box = document.getElementById('logBox');
+  box.classList.add('show');
+  box.innerHTML += `<div class="${cls}">${msg}</div>`;
+  box.scrollTop = box.scrollHeight;
+}
+
+function setStatus(id, ok, msg) {
+  const el = document.getElementById(id);
+  el.innerHTML = `<div class="file-status ${ok ? 'ok' : 'err'}">${ok ? '✅' : '❌'} ${msg}</div>`;
+}
+
+function checkReady() {
+  document.getElementById('actionBtn').disabled = !(dataVol1 && dataVol2 && dataCsv);
+}
+
+// 品番 -> { zaiko, nyuka, name } のマップを作る
+function parseInventorySheet(workbook) {
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+  // 「品番」を含むヘッダー行を探す
+  let headerIdx = -1, idx = {};
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    if (r && r.includes('品番')) {
+      headerIdx = i;
+      r.forEach((h, j) => { if (h) idx[h] = j; });
+      break;
+    }
+  }
+  if (headerIdx === -1) throw new Error('「品番」列が見つかりません');
+
+  const map = {};
+  let count = 0;
+  for (let i = headerIdx + 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r || r[idx['品番']] == null || r[idx['品番']] === '') continue;
+    const hin = String(r[idx['品番']]).trim();
+    const zaiko = r[idx['在庫状況']] != null ? String(r[idx['在庫状況']]).trim() : '';
+    const nyuka = r[idx['入荷予定']] != null ? String(r[idx['入荷予定']]).trim() : '';
+    const name1 = idx['品名-1'] != null && r[idx['品名-1']] != null ? String(r[idx['品名-1']]).trim() : '';
+    const name2 = idx['品名-2'] != null && r[idx['品名-2']] != null ? String(r[idx['品名-2']]).trim() : '';
+    map[hin] = { zaiko, nyuka, name: [name1, name2].filter(Boolean).join(' ') };
+    count++;
+  }
+  return { map, count };
+}
+
+document.getElementById('fileVol1').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const wb = XLSX.read(ev.target.result, { type: 'array' });
+      const result = parseInventorySheet(wb);
+      dataVol1 = result.map;
+      setStatus('statusVol1', true, `読み込み完了：品番 ${result.count}件`);
+    } catch (err) {
+      dataVol1 = null;
+      setStatus('statusVol1', false, `エラー：${err.message}`);
+    }
+    checkReady();
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+document.getElementById('fileVol2').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const wb = XLSX.read(ev.target.result, { type: 'array' });
+      const result = parseInventorySheet(wb);
+      dataVol2 = result.map;
+      setStatus('statusVol2', true, `読み込み完了：品番 ${result.count}件`);
+    } catch (err) {
+      dataVol2 = null;
+      setStatus('statusVol2', false, `エラー：${err.message}`);
+    }
+    checkReady();
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+document.getElementById('fileCsv').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      // BOM除去
+      let text = ev.target.result.replace(/^﻿/, '');
+      const lines = text.split(/\r\n|\n|\r/).filter(l => l.length > 0);
+      const header = lines[0].split(',');
+      const rows = lines.slice(1).map(l => {
+        const cols = l.split(',');
+        return [cols[0], cols[1]];
+      });
+      dataCsv = { header, rows };
+      setStatus('statusCsv', true, `読み込み完了：${rows.length}件`);
+    } catch (err) {
+      dataCsv = null;
+      setStatus('statusCsv', false, `エラー：${err.message}`);
+    }
+    checkReady();
+  };
+  reader.readAsText(file, 'UTF-8');
+});
+
+function doAction() {
+  document.getElementById('logBox').innerHTML = '';
+  document.getElementById('logBox').classList.remove('show');
+
+  const map = Object.assign({}, dataVol1, dataVol2);
+  const codePattern = /([A-Z]{2,6}-\d{3,7})$/;
+
+  const outputRows = [];
+  const soldOutList = [];
+  const unmatchedList = [];
+  let countZero = 0, countTen = 0, countSoldOut = 0;
+
+  log(`在庫データ品番マスタ：${Object.keys(map).length}件`, 'log-info');
+  log(`在庫CSV：${dataCsv.rows.length}件を処理開始`, 'log-info');
+  log('──────────', 'log-sep');
+
+  for (const [sku, total] of dataCsv.rows) {
+    const m = sku.match(codePattern);
+    const code = m ? m[1] : null;
+    const entry = code ? map[code] : undefined;
+
+    if (entry && entry.nyuka === 'SOLD OUT') {
+      countSoldOut++;
+      soldOutList.push({ sku, code, name: entry.name });
+      log(`⛔ ${sku} (${code}) → SOLD OUT のため出力から除外`, 'log-warn');
+      continue;
+    }
+
+    if (entry && (entry.zaiko === '※' || entry.zaiko === 'X')) {
+      outputRows.push([sku, '0']);
+      countZero++;
+    } else {
+      outputRows.push([sku, '10']);
+      countTen++;
+      if (!entry) {
+        unmatchedList.push({ sku, code: code || '(抽出失敗)' });
+      }
+    }
+  }
+
+  log('──────────', 'log-sep');
+  log(`✅ 処理完了：出力 ${outputRows.length}件 / 0更新 ${countZero}件 / 10更新 ${countTen}件 / SOLD OUT除外 ${countSoldOut}件`, 'log-ok');
+  if (unmatchedList.length > 0) {
+    log(`ℹ️ 品番マスタに見つからずデフォルト(10)としたSKU：${unmatchedList.length}件`, 'log-info');
+  }
+
+  // 出力CSV生成（UTF-8 BOM付き、CRLF）
+  const csvLines = [dataCsv.header.join(',')];
+  for (const row of outputRows) {
+    csvLines.push(row.join(','));
+  }
+  const csvContent = '﻿' + csvLines.join('\r\n') + '\r\n';
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+  if (outputBlobUrl) URL.revokeObjectURL(outputBlobUrl);
+  outputBlobUrl = URL.createObjectURL(blob);
+
+  const ts = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const fname = `itemdata_updated_${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}${pad(ts.getHours())}${pad(ts.getMinutes())}${pad(ts.getSeconds())}.csv`;
+
+  const dlBtn = document.getElementById('dlBtn');
+  dlBtn.onclick = () => {
+    const a = document.createElement('a');
+    a.href = outputBlobUrl;
+    a.download = fname;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  // 統計表示
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat"><div class="num">${dataCsv.rows.length}</div><div class="label">CSV総件数</div></div>
+    <div class="stat"><div class="num">${outputRows.length}</div><div class="label">出力件数</div></div>
+    <div class="stat"><div class="num">${countZero}</div><div class="label">0に更新</div></div>
+    <div class="stat"><div class="num">${countTen}</div><div class="label">10に更新</div></div>
+    <div class="stat"><div class="num">${countSoldOut}</div><div class="label">SOLD OUT除外</div></div>
+  `;
+  document.getElementById('resultSection').classList.add('show');
+
+  // SOLD OUT 一覧
+  const soldoutTbody = document.getElementById('soldoutTbody');
+  if (soldOutList.length > 0) {
+    soldoutTbody.innerHTML = soldOutList.map(s =>
+      `<tr><td>${s.sku}</td><td><span class="badge badge-red">${s.code}</span></td><td>${s.name}</td></tr>`
+    ).join('');
+    document.getElementById('soldoutSection').classList.add('show');
+  } else {
+    document.getElementById('soldoutSection').classList.remove('show');
+  }
+
+  // 未マッチ一覧（参考）
+  const unmatchedTbody = document.getElementById('unmatchedTbody');
+  if (unmatchedList.length > 0) {
+    unmatchedTbody.innerHTML = unmatchedList.map(u =>
+      `<tr><td>${u.sku}</td><td><span class="badge badge-gray">${u.code}</span></td></tr>`
+    ).join('');
+    document.getElementById('unmatchedSection').classList.add('show');
+  } else {
+    document.getElementById('unmatchedSection').classList.remove('show');
+  }
+}
+</script>
+</body>
+</html>
