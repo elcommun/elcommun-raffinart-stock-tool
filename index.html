@@ -64,7 +64,8 @@
   .dl-btn:hover{background:#059669;}
   .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;}
   .stats-grid.col5{grid-template-columns:repeat(5,1fr);}
-  @media (max-width:640px){.stats-grid.col5{grid-template-columns:repeat(2,1fr);}}
+  .stats-grid.col6{grid-template-columns:repeat(6,1fr);}
+  @media (max-width:640px){.stats-grid.col5,.stats-grid.col6{grid-template-columns:repeat(2,1fr);}}
   .stat{background:white;border-radius:8px;padding:12px;text-align:center;border:1px solid var(--gray-200);}
   .stat .num{font-size:22px;font-weight:800;color:var(--primary);}
   .stat .label{font-size:11px;color:var(--gray-600);margin-top:2px;}
@@ -142,7 +143,8 @@
       <div class="rule-box">
         ・SKU末尾の品番コード（英大文字＋ハイフン＋数字）でVol.1/Vol.2の「品番」と照合<br>
         ・「在庫状況」が <span class="badge badge-red">※ または X</span> → 総在庫数を <strong>0</strong> に更新<br>
-        ・それ以外（△・空欄・未マッチ含む） → 総在庫数を <strong>10</strong> に更新<br>
+        ・それ以外（△・空欄） → 総在庫数を <strong>10</strong> に更新<br>
+        ・品番が <span class="badge badge-red">未マッチ</span> → 総在庫数を <strong>0</strong> に更新し、下に一覧表示<br>
         ・「入荷予定」が <span class="badge badge-gray">SOLD OUT</span> → 出力から除外し、下に一覧表示
       </div>
     </div>
@@ -163,7 +165,7 @@
   <div class="result-section" id="resultSection">
     <h3>✅ 更新完了！</h3>
     <button class="dl-btn" id="dlBtn">⬇️ 更新後CSVをダウンロード</button>
-    <div class="stats-grid col5" id="statsGrid"></div>
+    <div class="stats-grid col6" id="statsGrid"></div>
   </div>
 
   <!-- SOLD OUT 一覧 -->
@@ -180,11 +182,11 @@
     </div>
   </div>
 
-  <!-- 未マッチ 一覧（参考） -->
+  <!-- 未マッチ 一覧 -->
   <div class="card soldout-section" id="unmatchedSection">
     <div class="card-header">
-      <div class="step rule">参考</div>
-      <h2>Vol.1 / Vol.2 に品番が見つからなかったSKU <span class="sub">総在庫数は10として出力済み</span></h2>
+      <div class="step rule" style="background:var(--red);">!</div>
+      <h2>品番が未マッチのSKU一覧 <span class="sub">総在庫数は0として出力しています</span></h2>
     </div>
     <div class="card-body">
       <table class="data-table">
@@ -341,22 +343,24 @@ function doAction() {
       continue;
     }
 
-    if (entry && (entry.zaiko === '※' || entry.zaiko === 'X')) {
+    if (!entry) {
+      outputRows.push([sku, '0']);
+      countZero++;
+      unmatchedList.push({ sku, code: code || '(抽出失敗)' });
+      log(`⚠️ ${sku} (${code || '抽出失敗'}) → 品番未マッチのため 0 に更新`, 'log-warn');
+    } else if (entry.zaiko === '※' || entry.zaiko === 'X') {
       outputRows.push([sku, '0']);
       countZero++;
     } else {
       outputRows.push([sku, '10']);
       countTen++;
-      if (!entry) {
-        unmatchedList.push({ sku, code: code || '(抽出失敗)' });
-      }
     }
   }
 
   log('──────────', 'log-sep');
   log(`✅ 処理完了：出力 ${outputRows.length}件 / 0更新 ${countZero}件 / 10更新 ${countTen}件 / SOLD OUT除外 ${countSoldOut}件`, 'log-ok');
   if (unmatchedList.length > 0) {
-    log(`ℹ️ 品番マスタに見つからずデフォルト(10)としたSKU：${unmatchedList.length}件`, 'log-info');
+    log(`⚠️ 品番マスタに見つからず 0 に更新したSKU：${unmatchedList.length}件`, 'log-warn');
   }
 
   // 出力CSV生成（UTF-8 BOM付き、CRLF）
@@ -389,6 +393,7 @@ function doAction() {
     <div class="stat"><div class="num">${outputRows.length}</div><div class="label">出力件数</div></div>
     <div class="stat"><div class="num">${countZero}</div><div class="label">0に更新</div></div>
     <div class="stat"><div class="num">${countTen}</div><div class="label">10に更新</div></div>
+    <div class="stat"><div class="num">${unmatchedList.length}</div><div class="label">品番未マッチ</div></div>
     <div class="stat"><div class="num">${countSoldOut}</div><div class="label">SOLD OUT除外</div></div>
   `;
   document.getElementById('resultSection').classList.add('show');
@@ -404,11 +409,11 @@ function doAction() {
     document.getElementById('soldoutSection').classList.remove('show');
   }
 
-  // 未マッチ一覧（参考）
+  // 未マッチ一覧
   const unmatchedTbody = document.getElementById('unmatchedTbody');
   if (unmatchedList.length > 0) {
     unmatchedTbody.innerHTML = unmatchedList.map(u =>
-      `<tr><td>${u.sku}</td><td><span class="badge badge-gray">${u.code}</span></td></tr>`
+      `<tr><td>${u.sku}</td><td><span class="badge badge-red">${u.code}</span></td></tr>`
     ).join('');
     document.getElementById('unmatchedSection').classList.add('show');
   } else {
