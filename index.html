@@ -236,7 +236,7 @@ function buildCsv(header, rows) {
 function timestamp() {
   const ts = new Date();
   const pad = (n) => String(n).padStart(2, '0');
-  return `${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}${pad(ts.getHours())}${pad(ts.getMinutes())}${pad(ts.getSeconds())}`;
+  return `${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}`;
 }
 
 function triggerDownload(url, filename) {
@@ -405,13 +405,13 @@ function doAction() {
   outputBlobUrl = URL.createObjectURL(blob);
 
   document.getElementById('dlBtn').onclick = () => {
-    triggerDownload(outputBlobUrl, `itemdata_updated_${ts}.csv`);
+    triggerDownload(outputBlobUrl, `${ts}_在庫更新.csv`);
   };
   document.getElementById('dlSoldoutBtn').onclick = () => {
-    downloadCsv(buildCsv(['SKU', '品番', '商品名'], soldOutList.map(s => [s.sku, s.code, s.name])), `soldout_list_${ts}.csv`);
+    downloadCsv(buildCsv(['SKU', '品番', '商品名'], soldOutList.map(s => [s.sku, s.code, s.name])), `${ts}_SOLDOUT.csv`);
   };
   document.getElementById('dlUnmatchedBtn').onclick = () => {
-    downloadCsv(buildCsv(['SKU', '抽出した品番コード'], unmatchedList.map(u => [u.sku, u.code])), `unmatched_list_${ts}.csv`);
+    downloadCsv(buildCsv(['SKU', '抽出した品番コード'], unmatchedList.map(u => [u.sku, u.code])), `${ts}_未マッチ.csv`);
   };
 
   // 統計表示
