@@ -83,14 +83,14 @@
 <div class="container">
 
   <div class="info-box">
-    <strong>処理概要：</strong>「在庫CSV」のSKU末尾の品番コード（例: <code>FIN-62604</code>）をVol.1 / Vol.2の「品番」と照合し、総在庫数を更新します。
+    <strong>処理概要：</strong>「在庫CSV」のSKU末尾の品番コード（例: <code>FIN-62604</code>）をVol.3 / Vol.4の「品番」と照合し、総在庫数を更新します。
   </div>
 
   <!-- Step 1 -->
   <div class="card">
     <div class="card-header">
       <div class="step">1</div>
-      <h2>在庫データをアップロード <span class="sub">Vol.1 / Vol.2 （xlsx）</span></h2>
+      <h2>在庫データをアップロード <span class="sub">Vol.3 / Vol.4 （xlsx）</span></h2>
     </div>
     <div class="card-body">
       <div class="upload-grid">
@@ -98,7 +98,7 @@
           <div class="upload-zone" id="zoneVol1">
             <input type="file" accept=".xlsx" id="fileVol1">
             <div class="upload-icon">📊</div>
-            <p>【在庫】raffinart_vol.1.xlsx</p>
+            <p>【在庫】raffinart_vol.3.xlsx</p>
             <small>ドロップ または クリックして選択</small>
           </div>
           <div id="statusVol1"></div>
@@ -107,7 +107,7 @@
           <div class="upload-zone" id="zoneVol2">
             <input type="file" accept=".xlsx" id="fileVol2">
             <div class="upload-icon">📊</div>
-            <p>【在庫】raffinart_vol.2.xlsx</p>
+            <p>【在庫】raffinart_vol.4.xlsx</p>
             <small>ドロップ または クリックして選択</small>
           </div>
           <div id="statusVol2"></div>
@@ -141,7 +141,7 @@
     </div>
     <div class="card-body">
       <div class="rule-box">
-        ・SKU末尾の品番コード（英大文字＋ハイフン＋数字）でVol.1/Vol.2の「品番」と照合<br>
+        ・SKU末尾の品番コード（英大文字＋ハイフン＋数字）でVol.3/Vol.4の「品番」と照合<br>
         ・「在庫状況」が <span class="badge badge-red">※ または X</span> → 総在庫数を <strong>0</strong> に更新<br>
         ・それ以外（△・空欄） → 総在庫数を <strong>10</strong> に更新<br>
         ・品番が <span class="badge badge-red">未マッチ</span> → 総在庫数を <strong>0</strong> に更新し、下に一覧表示<br>
