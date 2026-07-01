@@ -227,6 +227,47 @@ function csvEscape(val) {
   return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
 
+// クォート・カンマ・改行を考慮したCSVパース（RFC4180準拠）
+function parseCsvText(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else { inQuotes = false; }
+      } else {
+        field += c;
+      }
+    } else {
+      if (c === '"') { inQuotes = true; }
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\r') { /* skip */ }
+      else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else { field += c; }
+    }
+  }
+  if (field !== '' || row.length > 0) { row.push(field); rows.push(row); }
+  return rows.filter(r => r.length > 1 || (r.length === 1 && r[0] !== ''));
+}
+
+// ArrayBuffer からUTF-8 / Shift-JIS(CP932)を自動判定してデコード
+function decodeCsvBuffer(buffer) {
+  const bytes = new Uint8Array(buffer);
+  // UTF-8 BOM
+  if (bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+    return new TextDecoder('utf-8').decode(bytes.subarray(3));
+  }
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch (e) {
+    return new TextDecoder('shift-jis').decode(bytes);
+  }
+}
+
 function buildCsv(header, rows) {
   const lines = [header.map(csvEscape).join(',')];
   for (const row of rows) lines.push(row.map(csvEscape).join(','));
@@ -330,23 +371,31 @@ document.getElementById('fileCsv').addEventListener('change', (e) => {
   const reader = new FileReader();
   reader.onload = (ev) => {
     try {
-      // BOM除去
-      let text = ev.target.result.replace(/^﻿/, '');
-      const lines = text.split(/\r\n|\n|\r/).filter(l => l.length > 0);
-      const header = lines[0].split(',');
-      const rows = lines.slice(1).map(l => {
-        const cols = l.split(',');
-        return [cols[0], cols[1]];
-      });
-      dataCsv = { header, rows };
-      setStatus('statusCsv', true, `読み込み完了：${rows.length}件`);
+      const text = decodeCsvBuffer(ev.target.result);
+      const table = parseCsvText(text);
+      if (table.length < 2) throw new Error('データ行が見つかりません');
+      const rawHeader = table[0];
+
+      // 新形式（Yahoo!ショッピング型・複数列）と旧形式（SKU,総在庫数の2列）を自動判定
+      let skuIdx = rawHeader.indexOf('システム連携用SKU番号');
+      let format = 'rich';
+      if (skuIdx === -1) {
+        skuIdx = rawHeader.indexOf('SKU');
+        format = 'simple';
+      }
+      if (skuIdx === -1) throw new Error('SKU列（「SKU」または「システム連携用SKU番号」）が見つかりません');
+
+      const rows = table.slice(1).map(r => [r[skuIdx], null]);
+      dataCsv = { header: ['SKU', '総在庫数'], rows };
+      const formatLabel = format === 'rich' ? '新形式（Yahoo!ショッピング型）' : '旧形式（SKU,総在庫数）';
+      setStatus('statusCsv', true, `読み込み完了：${rows.length}件（${formatLabel}を検出）`);
     } catch (err) {
       dataCsv = null;
       setStatus('statusCsv', false, `エラー：${err.message}`);
     }
     checkReady();
   };
-  reader.readAsText(file, 'UTF-8');
+  reader.readAsArrayBuffer(file);
 });
 
 function doAction() {
