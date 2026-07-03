@@ -384,7 +384,7 @@ document.getElementById('fileCsv').addEventListener('change', (e) => {
       if (table.length < 2) throw new Error('データ行が見つかりません');
       const rawHeader = table[0];
 
-      // 新形式（Yahoo!ショッピング型・複数列）と旧形式（SKU,総在庫数の2列）を自動判定
+      // 新形式（GoQ System・複数列）と旧形式（SKU,総在庫数の2列）を自動判定
       let skuIdx = rawHeader.indexOf('システム連携用SKU番号');
       let format = 'rich';
       if (skuIdx === -1) {
@@ -395,7 +395,7 @@ document.getElementById('fileCsv').addEventListener('change', (e) => {
 
       const rows = table.slice(1).map(r => [r[skuIdx], null]);
       dataCsv = { header: ['SKU', '総在庫数'], rows };
-      const formatLabel = format === 'rich' ? '新形式（Yahoo!ショッピング型）' : '旧形式（SKU,総在庫数）';
+      const formatLabel = format === 'rich' ? 'GoQ System（EL COMMUN 楽天市場店）' : '旧形式（SKU,総在庫数）';
       setStatus('statusCsv', true, `読み込み完了：${rows.length}件（${formatLabel}を検出）`);
     } catch (err) {
       dataCsv = null;
