@@ -71,6 +71,34 @@
   .stat .label{font-size:11px;color:var(--gray-600);margin-top:2px;}
   .soldout-section{display:none;}
   .soldout-section.show{display:block;}
+
+  /* 全体の流れ（ステップリスト） */
+  .flow-list{display:flex;flex-direction:column;}
+  .flow-item{display:flex;gap:14px;position:relative;padding-bottom:20px;}
+  .flow-item:last-child{padding-bottom:0;}
+  .flow-item::before{content:'';position:absolute;left:15px;top:32px;bottom:0;width:2px;background:var(--gray-200);}
+  .flow-item:last-child::before{display:none;}
+  .flow-num{width:32px;height:32px;border-radius:50%;background:var(--primary-light);border:2px solid var(--primary);color:var(--primary);font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;z-index:1;}
+  .flow-item.goal .flow-num{background:var(--green-light);border-color:var(--green);color:#065F46;}
+  .flow-body{padding-top:4px;font-size:13px;line-height:1.8;color:var(--gray-800);}
+  .flow-body .flow-title{font-weight:700;font-size:13px;margin-bottom:2px;}
+  .flow-body .flow-desc{font-size:12.5px;color:var(--gray-600);}
+  .flow-body .app-here{display:inline-block;background:var(--primary);color:white;font-size:10px;font-weight:700;border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:middle;}
+
+  /* ミニマニュアル（アップロード欄上の手順） */
+  .mini-manual{background:var(--blue-light);border:1px solid #BFDBFE;border-radius:10px;padding:14px 16px;margin-bottom:16px;}
+  .mini-manual .mm-title{font-size:12.5px;font-weight:700;color:#1E40AF;margin-bottom:8px;}
+  .mini-manual ol{margin:0;padding-left:20px;font-size:12.5px;color:#1E40AF;line-height:2;}
+  .mini-manual a{color:#1D4ED8;font-weight:600;}
+
+  /* 更新ルール表 */
+  .rule-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .rule-table th{background:var(--gray-100);padding:9px 14px;text-align:left;font-weight:700;color:var(--gray-600);border-bottom:1px solid var(--gray-200);font-size:12px;}
+  .rule-table td{padding:10px 14px;border-bottom:1px solid var(--gray-200);vertical-align:middle;}
+  .rule-table tr:last-child td{border-bottom:none;}
+  .rule-table .num{font-size:16px;font-weight:800;}
+  .rule-table .num.zero{color:var(--red);}
+  .rule-table .num.ten{color:var(--green);}
 </style>
 </head>
 <body>
@@ -93,12 +121,42 @@
       <h2>全体の流れ <span class="sub">作業マニュアル</span></h2>
     </div>
     <div class="card-body">
-      <div class="rule-box">
-        ① <a href="https://raffinart.jp/stock-list/" target="_blank" rel="noopener">Raffinart ストックリスト</a>から Vol.3 / Vol.4 の在庫表（xlsx）をダウンロード<br>
-        ② GoQ System <a href="https://stock2.goqsystem.com/?nav_id=stockSituation" target="_blank" rel="noopener">「在庫連携画面」</a>で「rft-」で検索 → 【CSV】プルダウンで「EL COMMUN 楽天市場店」を選択 → 「すべて」にチェック → 「CSV出力」で在庫CSVをダウンロード<br>
-        ③ このアプリに ①② のファイルをアップロードして「在庫データを更新する」を実行 → 更新後CSVをダウンロード<br>
-        ④ 「在庫連携画面」の <strong>「総在庫数」にある縦の三点リーダー（⋮）ボタン</strong> を押して、③で生成したファイルを「ファイルを選択」→「アップロード」<br>
-        ⑤ 取り込み後、<strong>「EL COMMUN 楽天市場店」で「差異商品」を検索し、「反映」</strong>させて終了
+      <div class="flow-list">
+        <div class="flow-item">
+          <div class="flow-num">1</div>
+          <div class="flow-body">
+            <div class="flow-title">Raffinart から在庫表をダウンロード</div>
+            <div class="flow-desc"><a href="https://raffinart.jp/stock-list/" target="_blank" rel="noopener">Raffinart ストックリスト</a> から Vol.3 / Vol.4 の在庫表（xlsx）をダウンロード</div>
+          </div>
+        </div>
+        <div class="flow-item">
+          <div class="flow-num">2</div>
+          <div class="flow-body">
+            <div class="flow-title">GoQ System から在庫CSVをダウンロード</div>
+            <div class="flow-desc"><a href="https://stock2.goqsystem.com/?nav_id=stockSituation" target="_blank" rel="noopener">「在庫連携画面」</a>で「rft-」で検索 → 【CSV】プルダウンで「EL COMMUN 楽天市場店」を選択 → 「すべて」にチェック → 「CSV出力」</div>
+          </div>
+        </div>
+        <div class="flow-item">
+          <div class="flow-num">3</div>
+          <div class="flow-body">
+            <div class="flow-title">このアプリで在庫データを更新 <span class="app-here">このアプリ</span></div>
+            <div class="flow-desc">1と2のファイルをアップロードして「在庫データを更新する」を実行 → 更新後CSVをダウンロード</div>
+          </div>
+        </div>
+        <div class="flow-item">
+          <div class="flow-num">4</div>
+          <div class="flow-body">
+            <div class="flow-title">GoQ System へアップロード</div>
+            <div class="flow-desc">「在庫連携画面」の<strong>「総在庫数」にある縦の三点リーダー（⋮）ボタン</strong>を押して、3で生成したファイルを「ファイルを選択」→「アップロード」</div>
+          </div>
+        </div>
+        <div class="flow-item goal">
+          <div class="flow-num">✓</div>
+          <div class="flow-body">
+            <div class="flow-title">差異商品を反映して終了</div>
+            <div class="flow-desc">取り込み後、<strong>「EL COMMUN 楽天市場店」で「差異商品」を検索し、「反映」</strong>させて終了</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -110,9 +168,12 @@
       <h2>在庫データをアップロード <span class="sub">Vol.3 / Vol.4 （xlsx）</span></h2>
     </div>
     <div class="card-body">
-      <div class="rule-box" style="margin-bottom:16px;">
-        <strong>在庫データのダウンロード元（Raffinart ストックリスト）</strong><br>
-        <a href="https://raffinart.jp/stock-list/" target="_blank" rel="noopener">https://raffinart.jp/stock-list/</a> から <strong>「INTERIOR STYLE Vol.3」</strong> と <strong>「INTERIOR STYLE Vol.4」</strong> の在庫表（xlsx）をダウンロードしてください
+      <div class="mini-manual">
+        <div class="mm-title">📥 ダウンロード元：Raffinart ストックリスト</div>
+        <ol>
+          <li><a href="https://raffinart.jp/stock-list/" target="_blank" rel="noopener">https://raffinart.jp/stock-list/</a> を開く</li>
+          <li><strong>「INTERIOR STYLE Vol.3」</strong> と <strong>「INTERIOR STYLE Vol.4」</strong> の在庫表（xlsx）をダウンロード</li>
+        </ol>
       </div>
       <div class="upload-grid">
         <div>
@@ -144,9 +205,13 @@
       <h2>在庫CSVをアップロード <span class="sub">itemdata_*.csv</span></h2>
     </div>
     <div class="card-body">
-      <div class="rule-box" style="margin-bottom:16px;">
-        <strong>CSVのダウンロード方法（GoQ System）</strong><br>
-        <a href="https://stock2.goqsystem.com/?nav_id=stockSituation" target="_blank" rel="noopener">「在庫連携画面」</a>で <strong>「rft-」</strong> で検索 → 上部の <span class="badge badge-blue">【CSV】</span> プルダウンで <strong>「EL COMMUN 楽天市場店」</strong> を選択 → <strong>「すべて」</strong> にチェック → <strong>「CSV出力」</strong> ボタンを押す
+      <div class="mini-manual">
+        <div class="mm-title">📥 ダウンロード元：GoQ System</div>
+        <ol>
+          <li><a href="https://stock2.goqsystem.com/?nav_id=stockSituation" target="_blank" rel="noopener">「在庫連携画面」</a>を開き、<strong>「rft-」</strong> で検索</li>
+          <li>上部の <span class="badge badge-blue">【CSV】</span> プルダウンで <strong>「EL COMMUN 楽天市場店」</strong> を選択</li>
+          <li><strong>「すべて」</strong> にチェック → <strong>「CSV出力」</strong> ボタンを押す</li>
+        </ol>
       </div>
       <div class="upload-zone" id="zoneCsv">
         <input type="file" accept=".csv" id="fileCsv">
@@ -165,13 +230,32 @@
       <h2>更新ルール</h2>
     </div>
     <div class="card-body">
-      <div class="rule-box">
-        ・SKU末尾の品番コード（英大文字＋ハイフン＋数字）でVol.3/Vol.4の「品番」と照合<br>
-        ・「在庫状況」が <span class="badge badge-red">※ または X</span> → 総在庫数を <strong>0</strong> に更新<br>
-        ・それ以外（△・空欄） → 総在庫数を <strong>10</strong> に更新<br>
-        ・品番が <span class="badge badge-red">未マッチ</span> → 総在庫数を <strong>0</strong> に更新し、下に一覧表示<br>
-        ・「入荷予定」が <span class="badge badge-gray">SOLD OUT</span> → 出力から除外し、下に一覧表示
-      </div>
+      <p style="font-size:12.5px;color:var(--gray-600);margin-bottom:12px;">SKU末尾の品番コード（英大文字＋ハイフン＋数字）で Vol.3 / Vol.4 の「品番」と照合し、結果に応じて総在庫数を更新します。</p>
+      <table class="rule-table">
+        <thead><tr><th>照合結果</th><th>総在庫数</th><th>備考</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>「在庫状況」が <span class="badge badge-red">※</span> または <span class="badge badge-red">X</span></td>
+            <td><span class="num zero">0</span></td>
+            <td>在庫切れ扱い</td>
+          </tr>
+          <tr>
+            <td>それ以外（<span class="badge badge-green">△</span>・空欄）</td>
+            <td><span class="num ten">10</span></td>
+            <td>在庫あり扱い</td>
+          </tr>
+          <tr>
+            <td>品番が <span class="badge badge-red">未マッチ</span></td>
+            <td><span class="num zero">0</span></td>
+            <td>実行後に一覧表示</td>
+          </tr>
+          <tr>
+            <td>「入荷予定」が <span class="badge badge-gray">SOLD OUT</span></td>
+            <td>—</td>
+            <td>出力から除外し、実行後に一覧表示</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
