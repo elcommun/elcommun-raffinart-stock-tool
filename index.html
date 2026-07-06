@@ -86,6 +86,23 @@
     <strong>処理概要：</strong>「在庫CSV」のSKU末尾の品番コード（例: <code>FIN-62604</code>）をVol.3 / Vol.4の「品番」と照合し、総在庫数を更新します。
   </div>
 
+  <!-- 全体の流れ -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step rule">流れ</div>
+      <h2>全体の流れ <span class="sub">作業マニュアル</span></h2>
+    </div>
+    <div class="card-body">
+      <div class="rule-box">
+        ① <a href="https://raffinart.jp/stock-list/" target="_blank" rel="noopener">Raffinart ストックリスト</a>から Vol.3 / Vol.4 の在庫表（xlsx）をダウンロード<br>
+        ② GoQ System <a href="https://stock2.goqsystem.com/?nav_id=stockSituation" target="_blank" rel="noopener">「在庫連携画面」</a>で「rft-」で検索 → 【CSV】プルダウンで「EL COMMUN 楽天市場店」を選択 → 「すべて」にチェック → 「CSV出力」で在庫CSVをダウンロード<br>
+        ③ このアプリに ①② のファイルをアップロードして「在庫データを更新する」を実行 → 更新後CSVをダウンロード<br>
+        ④ 「在庫連携画面」の <strong>「総在庫数」にある縦の三点リーダー（⋮）ボタン</strong> を押して、③で生成したファイルを「ファイルを選択」→「アップロード」<br>
+        ⑤ 取り込み後、<strong>「EL COMMUN 楽天市場店」で「差異商品」を検索し、「反映」</strong>させて終了
+      </div>
+    </div>
+  </div>
+
   <!-- Step 1 -->
   <div class="card">
     <div class="card-header">
@@ -144,7 +161,7 @@
   <!-- Rule -->
   <div class="card">
     <div class="card-header">
-      <div class="step rule">RULE</div>
+      <div class="step rule">更新</div>
       <h2>更新ルール</h2>
     </div>
     <div class="card-body">
