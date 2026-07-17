@@ -64,7 +64,7 @@
   .dl-btn:hover{background:#059669;}
   .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;}
   .stats-grid.col5{grid-template-columns:repeat(5,1fr);}
-  .stats-grid.col6{grid-template-columns:repeat(6,1fr);}
+  .stats-grid.col6{grid-template-columns:repeat(auto-fit,minmax(110px,1fr));}
   @media (max-width:640px){.stats-grid.col5,.stats-grid.col6{grid-template-columns:repeat(2,1fr);}}
   .stat{background:white;border-radius:8px;padding:12px;text-align:center;border:1px solid var(--gray-200);}
   .stat .num{font-size:22px;font-weight:800;color:var(--primary);}
@@ -254,6 +254,11 @@
             <td>—</td>
             <td>出力から除外し、実行後に一覧表示</td>
           </tr>
+          <tr>
+            <td>SKUが <span class="badge badge-gray">rft- 以外</span></td>
+            <td>—</td>
+            <td>Raffinart対象外のため出力から除外（在庫は変更されない）</td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -322,7 +327,7 @@ let outputBlobUrl = null;
 function log(msg, cls = '') {
   const box = document.getElementById('logBox');
   box.classList.add('show');
-  box.innerHTML += `<div class="${cls}">${msg}</div>`;
+  box.insertAdjacentHTML('beforeend', `<div class="${cls}">${msg}</div>`);
   box.scrollTop = box.scrollHeight;
 }
 
@@ -500,8 +505,10 @@ document.getElementById('fileCsv').addEventListener('change', (e) => {
 
       const rows = table.slice(1).map(r => [r[skuIdx], null]);
       dataCsv = { header: ['SKU', '総在庫数'], rows };
+      const rftCount = rows.filter(r => (r[0] || '').startsWith('rft-')).length;
       const formatLabel = format === 'rich' ? 'GoQ System（EL COMMUN 楽天市場店）' : '旧形式（SKU,総在庫数）';
-      setStatus('statusCsv', true, `読み込み完了：${rows.length}件（${formatLabel}を検出）`);
+      const note = rftCount < rows.length ? `、Raffinart対象（rft-）は ${rftCount}件 — それ以外は出力から除外されます` : '';
+      setStatus('statusCsv', true, `読み込み完了：${rows.length}件（${formatLabel}を検出${note}）`);
     } catch (err) {
       dataCsv = null;
       setStatus('statusCsv', false, `エラー：${err.message}`);
@@ -521,13 +528,18 @@ function doAction() {
   const outputRows = [];
   const soldOutList = [];
   const unmatchedList = [];
-  let countZero = 0, countTen = 0, countSoldOut = 0;
+  let countZero = 0, countTen = 0, countSoldOut = 0, countExcluded = 0;
 
   log(`在庫データ品番マスタ：${Object.keys(map).length}件`, 'log-info');
   log(`在庫CSV：${dataCsv.rows.length}件を処理開始`, 'log-info');
   log('──────────', 'log-sep');
 
   for (const [sku, total] of dataCsv.rows) {
+    // Raffinart対象（rft-）以外のSKUは誤って在庫0にしないよう出力から除外
+    if (!sku || !sku.startsWith('rft-')) {
+      countExcluded++;
+      continue;
+    }
     const m = sku.match(codePattern);
     const code = m ? m[1] : null;
     const entry = code ? map[code] : undefined;
@@ -554,6 +566,9 @@ function doAction() {
   }
 
   log('──────────', 'log-sep');
+  if (countExcluded > 0) {
+    log(`ℹ️ 「rft-」以外のSKU ${countExcluded}件はRaffinart対象外のため出力から除外しました（在庫は変更されません）`, 'log-info');
+  }
   log(`✅ 処理完了：出力 ${outputRows.length}件 / 0更新 ${countZero}件 / 10更新 ${countTen}件 / SOLD OUT除外 ${countSoldOut}件`, 'log-ok');
   if (unmatchedList.length > 0) {
     log(`⚠️ 品番マスタに見つからず 0 に更新したSKU：${unmatchedList.length}件`, 'log-warn');
@@ -584,6 +599,7 @@ function doAction() {
     <div class="stat"><div class="num">${countTen}</div><div class="label">10に更新</div></div>
     <div class="stat"><div class="num">${unmatchedList.length}</div><div class="label">品番未マッチ</div></div>
     <div class="stat"><div class="num">${countSoldOut}</div><div class="label">SOLD OUT除外</div></div>
+    <div class="stat"><div class="num">${countExcluded}</div><div class="label">rft-以外（対象外）</div></div>
   `;
   document.getElementById('resultSection').classList.add('show');
 
