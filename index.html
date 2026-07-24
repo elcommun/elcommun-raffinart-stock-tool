@@ -429,6 +429,19 @@ function parseInventorySheet(workbook) {
   }
   if (headerIdx === -1) throw new Error('「品番」列が見つかりません');
 
+  // ヘッダー行より上にある「◯年◯月◯日時点」の日付を探す
+  let asOf = null;
+  for (let i = 0; i <= headerIdx; i++) {
+    const r = rows[i];
+    if (!r) continue;
+    for (const c of r) {
+      if (c == null) continue;
+      const m = String(c).match(/(\d{4}年\s*\d{1,2}月\d{1,2}日時点|\d{1,2}月\d{1,2}日時点)/);
+      if (m) { asOf = m[1].replace(/\s+/g, ''); break; }
+    }
+    if (asOf) break;
+  }
+
   const map = {};
   let count = 0;
   for (let i = headerIdx + 1; i < rows.length; i++) {
@@ -442,7 +455,7 @@ function parseInventorySheet(workbook) {
     map[hin] = { zaiko, nyuka, name: [name1, name2].filter(Boolean).join(' ') };
     count++;
   }
-  return { map, count };
+  return { map, count, asOf };
 }
 
 document.getElementById('fileVol1').addEventListener('change', (e) => {
@@ -454,7 +467,8 @@ document.getElementById('fileVol1').addEventListener('change', (e) => {
       const wb = XLSX.read(ev.target.result, { type: 'array' });
       const result = parseInventorySheet(wb);
       dataVol1 = result.map;
-      setStatus('statusVol1', true, `読み込み完了：品番 ${result.count}件`);
+      const asOf = result.asOf ? ` ／ <strong>${result.asOf}</strong>` : ' ／ <span style="color:#B45309">⚠️ 時点日付が読み取れませんでした</span>';
+      setStatus('statusVol1', true, `読み込み完了：品番 ${result.count}件${asOf}`);
     } catch (err) {
       dataVol1 = null;
       setStatus('statusVol1', false, `エラー：${err.message}`);
@@ -473,7 +487,8 @@ document.getElementById('fileVol2').addEventListener('change', (e) => {
       const wb = XLSX.read(ev.target.result, { type: 'array' });
       const result = parseInventorySheet(wb);
       dataVol2 = result.map;
-      setStatus('statusVol2', true, `読み込み完了：品番 ${result.count}件`);
+      const asOf = result.asOf ? ` ／ <strong>${result.asOf}</strong>` : ' ／ <span style="color:#B45309">⚠️ 時点日付が読み取れませんでした</span>';
+      setStatus('statusVol2', true, `読み込み完了：品番 ${result.count}件${asOf}`);
     } catch (err) {
       dataVol2 = null;
       setStatus('statusVol2', false, `エラー：${err.message}`);
