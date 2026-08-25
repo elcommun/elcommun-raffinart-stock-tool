@@ -235,12 +235,12 @@
         <thead><tr><th>照合結果</th><th>総在庫数</th><th>備考</th></tr></thead>
         <tbody>
           <tr>
-            <td>「在庫状況」が <span class="badge badge-red">※</span> または <span class="badge badge-red">X</span></td>
+            <td>「在庫状況」が <span class="badge badge-red">※</span> ・ <span class="badge badge-red">X</span> ・ <span class="badge badge-red">△</span></td>
             <td><span class="num zero">0</span></td>
             <td>在庫切れ扱い</td>
           </tr>
           <tr>
-            <td>それ以外（<span class="badge badge-green">△</span>・空欄）</td>
+            <td>それ以外（空欄）</td>
             <td><span class="num ten">10</span></td>
             <td>在庫あり扱い</td>
           </tr>
@@ -571,7 +571,7 @@ function doAction() {
       countZero++;
       unmatchedList.push({ sku, code: code || '(抽出失敗)' });
       log(`⚠️ ${sku} (${code || '抽出失敗'}) → 品番未マッチのため 0 に更新`, 'log-warn');
-    } else if (entry.zaiko === '※' || entry.zaiko === 'X') {
+    } else if (entry.zaiko === '※' || entry.zaiko === 'X' || entry.zaiko === '△') {
       outputRows.push([sku, '0']);
       countZero++;
     } else {
