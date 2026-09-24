@@ -41,6 +41,7 @@
   .file-status{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;margin-top:10px;font-size:13px;}
   .file-status.ok{background:var(--green-light);color:#065F46;}
   .file-status.err{background:var(--red-light);color:#991B1B;}
+  .file-status.multi{display:block;line-height:1.9;}
   .data-table{width:100%;border-collapse:collapse;font-size:12px;}
   .data-table th{background:var(--gray-100);padding:8px 12px;text-align:left;font-weight:600;color:var(--gray-600);border-bottom:1px solid var(--gray-200);}
   .data-table td{padding:8px 12px;border-bottom:1px solid var(--gray-200);}
@@ -181,26 +182,13 @@
           <li><strong>「INTERIOR STYLE Vol.3」</strong> と <strong>「INTERIOR STYLE Vol.4」</strong> の在庫表（xlsx）をダウンロード</li>
         </ol>
       </div>
-      <div class="upload-grid">
-        <div>
-          <div class="upload-zone" id="zoneVol1">
-            <input type="file" accept=".xlsx" id="fileVol1">
-            <div class="upload-icon">📊</div>
-            <p>【在庫】raffinart_vol.3.xlsx</p>
-            <small>ドロップ または クリックして選択</small>
-          </div>
-          <div id="statusVol1"></div>
-        </div>
-        <div>
-          <div class="upload-zone" id="zoneVol2">
-            <input type="file" accept=".xlsx" id="fileVol2">
-            <div class="upload-icon">📊</div>
-            <p>【在庫】raffinart_vol.4.xlsx</p>
-            <small>ドロップ または クリックして選択</small>
-          </div>
-          <div id="statusVol2"></div>
-        </div>
+      <div class="upload-zone" id="zoneVol">
+        <input type="file" accept=".xlsx" id="fileVol" multiple>
+        <div class="upload-icon">📊</div>
+        <p>Vol.3 と Vol.4 をまとめて選択できます</p>
+        <small>2つ同時にドロップ／選択 または クリックして選択（⌘キーで複数選択）</small>
       </div>
+      <div id="statusVol"></div>
     </div>
   </div>
 
@@ -325,8 +313,7 @@
 </div>
 
 <script>
-let dataVol1 = null;
-let dataVol2 = null;
+let dataVol = null;
 let dataCsv = null;
 let outputBlobUrl = null;
 
@@ -343,7 +330,7 @@ function setStatus(id, ok, msg) {
 }
 
 function checkReady() {
-  document.getElementById('actionBtn').disabled = !(dataVol1 && dataVol2 && dataCsv);
+  document.getElementById('actionBtn').disabled = !(dataVol && dataCsv);
 }
 
 function csvEscape(val) {
@@ -464,44 +451,52 @@ function parseInventorySheet(workbook) {
   return { map, count, asOf };
 }
 
-document.getElementById('fileVol1').addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    try {
-      const wb = XLSX.read(ev.target.result, { type: 'array' });
-      const result = parseInventorySheet(wb);
-      dataVol1 = result.map;
-      const asOf = result.asOf ? ` ／ <strong>${result.asOf}</strong>` : ' ／ <span style="color:#B45309">⚠️ 時点日付が読み取れませんでした</span>';
-      setStatus('statusVol1', true, `読み込み完了：品番 ${result.count}件${asOf}`);
-    } catch (err) {
-      dataVol1 = null;
-      setStatus('statusVol1', false, `エラー：${err.message}`);
-    }
-    checkReady();
-  };
-  reader.readAsArrayBuffer(file);
-});
+function readFileAsArrayBuffer(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => resolve(ev.target.result);
+    reader.onerror = () => reject(new Error('ファイルを読み込めませんでした'));
+    reader.readAsArrayBuffer(file);
+  });
+}
 
-document.getElementById('fileVol2').addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
+document.getElementById('fileVol').addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files || []);
+  if (files.length === 0) return;
+
+  const merged = {};
+  const lines = [];
+  let okCount = 0;
+
+  for (const file of files) {
     try {
-      const wb = XLSX.read(ev.target.result, { type: 'array' });
+      const buf = await readFileAsArrayBuffer(file);
+      const wb = XLSX.read(buf, { type: 'array' });
       const result = parseInventorySheet(wb);
-      dataVol2 = result.map;
-      const asOf = result.asOf ? ` ／ <strong>${result.asOf}</strong>` : ' ／ <span style="color:#B45309">⚠️ 時点日付が読み取れませんでした</span>';
-      setStatus('statusVol2', true, `読み込み完了：品番 ${result.count}件${asOf}`);
+      Object.assign(merged, result.map);
+      okCount++;
+      const asOf = result.asOf
+        ? `<strong>${result.asOf}</strong>`
+        : '<span style="color:#B45309">⚠️ 時点日付が読み取れませんでした</span>';
+      lines.push(`✅ ${file.name}：品番 ${result.count}件 ／ ${asOf}`);
     } catch (err) {
-      dataVol2 = null;
-      setStatus('statusVol2', false, `エラー：${err.message}`);
+      lines.push(`❌ ${file.name}：${err.message}`);
     }
-    checkReady();
-  };
-  reader.readAsArrayBuffer(file);
+  }
+
+  const el = document.getElementById('statusVol');
+  if (okCount === 0) {
+    dataVol = null;
+    el.innerHTML = `<div class="file-status err multi">${lines.join('<br>')}</div>`;
+  } else {
+    dataVol = merged;
+    const total = Object.keys(merged).length;
+    const warn = files.length === 1
+      ? '<br><span style="color:#B45309">⚠️ 1ファイルのみです。Vol.3とVol.4の両方を選択してください</span>'
+      : '';
+    el.innerHTML = `<div class="file-status ok multi">${lines.join('<br>')}<br><strong>合計 品番 ${total}件（${okCount}ファイル）</strong>${warn}</div>`;
+  }
+  checkReady();
 });
 
 document.getElementById('fileCsv').addEventListener('change', (e) => {
@@ -543,7 +538,7 @@ function doAction() {
   document.getElementById('logBox').innerHTML = '';
   document.getElementById('logBox').classList.remove('show');
 
-  const map = Object.assign({}, dataVol1, dataVol2);
+  const map = dataVol || {};
   const codePattern = /([A-Z]{2,6}-\d{3,7})$/;
 
   const outputRows = [];
